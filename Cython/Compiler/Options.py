@@ -62,7 +62,9 @@ pre_import = None
 #: variables or types may no longer be safe when enabling the respective level since
 #: there is no guaranteed order in which the (reference counted) objects will
 #: be cleaned up.  The order can change due to live references and reference cycles.
-generate_cleanup_code = False
+# iOS: default behaviour is to generate maximum cleanup code. 
+generate_cleanup_code = 3
+# generate_cleanup_code = False
 
 #: Should tp_clear() set object fields to None instead of clearing them to NULL?
 clear_to_none = True
