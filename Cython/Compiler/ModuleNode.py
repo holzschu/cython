@@ -2424,6 +2424,22 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             slot.generate(scope, code)
         code.putln(
             "};")
+        # iOS extension: add a re-initialization function: 
+        code.putln("// iOS extension for re-initializing the entire type (copied from type initialization above)")
+        init_header = "static void init_%s() {"
+        code.putln(init_header % type.typeobj_cname)
+        code.putln(
+            '%s.tp_name = "%s.%s"; /*tp_name*/' % (
+                type.typeobj_cname, self.full_module_name, scope.class_name))
+        code.putln(
+            "%s.tp_basicsize = sizeof(%s); /*tp_basicsize*/" % (
+                type.typeobj_cname, objstruct))
+        code.putln(
+            "%s.tp_itemsize = 0; /*tp_itemsize*/" % type.typeobj_cname)
+        for slot in TypeSlots.slot_table:
+            slot.generate_initialization(scope, code)
+        code.putln(
+            "}")
 
     def generate_method_table(self, env, code):
         if env.is_c_class_scope and not env.pyfunc_entries:
@@ -3168,6 +3184,8 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         for cname in [Naming.cython_runtime_cname, Naming.builtins_cname]:
             code.put_decref_clear(cname, py_object_type, nanny=False, clear_before_decref=True)
         code.put_decref_clear(env.module_dict_cname, py_object_type, nanny=False, clear_before_decref=True)
+        # iOS: reset the pointer to module for the next reinitialization:
+        code.putln("%s = NULL; // iOS: reset pointer for the next initialization" % env.module_cname)
 
     def generate_main_method(self, env, code):
         module_is_main = self.is_main_module_flag_cname()

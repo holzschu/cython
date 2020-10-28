@@ -5219,6 +5219,11 @@ class CClassDefNode(ClassDefNode):
         scope = type.scope
         if not scope:  # could be None if there was an error
             return
+        # iOS: call type re-initialization every time:
+        code.putln("#if TARGET_OS_IPHONE")
+        code.putln("init_%s();" % typeobj_cname)
+        code.putln("#endif")
+        #
         if entry.visibility != 'extern':
             code.putln("#if CYTHON_COMPILING_IN_LIMITED_API")
             base_type = scope.parent_type.base_type
