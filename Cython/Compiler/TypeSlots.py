@@ -241,6 +241,48 @@ class SlotDescriptor(object):
         if preprocessor_guard:
             code.putln("#endif")
 
+    # on iOS, the type is kept in memory between multiple Python runs,
+    # so we need to reinitialize its values at each launch.
+    def generate_initialization(self, scope, code):
+        preprocessor_guard = self.preprocessor_guard_code()
+        if preprocessor_guard:
+            code.putln(preprocessor_guard)
+
+        end_pypy_guard = False
+        if self.is_initialised_dynamically:
+            value = "0"
+        else:
+            value = self.slot_code(scope)
+            if value == "0" and self.is_inherited:
+                # PyPy currently has a broken PyType_Ready() that fails to
+                # inherit some slots.  To work around this, we explicitly
+                # set inherited slots here, but only in PyPy since CPython
+                # handles this better than we do.
+                inherited_value = value
+                current_scope = scope
+                while (inherited_value == "0"
+                       and current_scope.parent_type
+                       and current_scope.parent_type.base_type
+                       and current_scope.parent_type.base_type.scope):
+                    current_scope = current_scope.parent_type.base_type.scope
+                    inherited_value = self.slot_code(current_scope)
+                if inherited_value != "0":
+                    code.putln("#if CYTHON_COMPILING_IN_PYPY")
+                    code.putln("%s.%s = %s; /*%s*/" % (scope.parent_type.typeobj_cname, self.slot_name, inherited_value, self.slot_name))
+                    code.putln("#else")
+                    end_pypy_guard = True
+
+        code.putln("%s.%s = %s; /*%s*/" % (scope.parent_type.typeobj_cname, self.slot_name, value, self.slot_name))
+
+        if end_pypy_guard:
+            code.putln("#endif")
+
+        if self.py3 == '<RESERVED>':
+            code.putln("#else")
+            code.putln("0, /*reserved*/")
+        if preprocessor_guard:
+            code.putln("#endif")
+
     # Some C implementations have trouble statically
     # initialising a global with a pointer to an extern
     # function, so we initialise some of the type slots
