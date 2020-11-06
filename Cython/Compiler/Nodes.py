@@ -4896,6 +4896,11 @@ class CClassDefNode(ClassDefNode):
         scope = type.scope
         if not scope:  # could be None if there was an error
             return
+        # iOS: call type re-initialization every time:
+        code.putln("#if TARGET_OS_IPHONE")
+        code.putln("init_%s();" % typeobj_cname)
+        code.putln("#endif")
+        #
         if entry.visibility != 'extern':
             for slot in TypeSlots.slot_table:
                 slot.generate_dynamic_init_code(scope, code)
