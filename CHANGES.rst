@@ -2,20 +2,133 @@
 Cython Changelog
 ================
 
-0.29.22 (2020-??-??)
+0.29.25 (2021-??-??)
 ====================
 
 Bugs fixed
 ----------
 
+* Avoid copying unaligned 16-bit values since some platforms require them to be aligned.
+  Use memcpy() instead to let the C compiler decide how to do it.
+  (Github issue #4343)
+
+* Cython crashed on invalid truthiness tests on C++ types without ``operator bool``.
+  Patch by David Woods.  (Github issue #4348)
+
+* The declaration of ``PyUnicode_CompareWithASCIIString()`` in ``cpython.unicode`` was incorrect.
+  Patch by Max Bachmann.  (Github issue #4344)
+
+
+0.29.24 (2021-07-14)
+====================
+
+Bugs fixed
+----------
+
+* Inline functions in pxd files that used memory views could lead to invalid
+  C code if the module that imported from them does not use memory views.
+  Patch by David Woods.  (Github issue #1415)
+
+* Several declarations in ``libcpp.string`` were added and corrected.
+  Patch by Janek Bevendorff.  (Github issue #4268)
+
+* Pickling unbound Cython compiled methods failed.
+  Patch by Pierre Glaser.  (Github issue #2972)
+
+* The tracing code was adapted to work with CPython 3.10.
+
+* The optimised ``in`` operator failed on unicode strings in Py3.9 and later
+  that were constructed from an external ``wchar_t`` source.
+  Also, related C compiler warnings about deprecated C-API usage were resolved.
+  (Github issue #3925)
+
+* Some compiler crashes were resolved.
+  Patch by David Woods.  (Github issues #4214, #2811)
+
+* An incorrect warning about 'unused' generator expressions was removed.
+  (GIthub issue #1699)
+
+* The attributes ``gen.gi_frame`` and ``coro.cr_frame`` of Cython compiled
+  generators and coroutines now return an actual frame object for introspection,
+  instead of ``None``.
+  (Github issue #2306)
+
+
+0.29.23 (2021-04-14)
+====================
+
+Bugs fixed
+----------
+
+* Some problems with Python 3.10 were resolved.
+  Patches by Victor Stinner and David Woods.  (Github issues #4046, #4100)
+
+* An incorrect "optimisation" was removed that allowed changes to a keyword
+  dict to leak into keyword arguments passed into a function.
+  Patch by Peng Weikang.  (Github issue #3227)
+
+* Multiplied str constants could end up as bytes constants with language_level=2.
+  Patch by Alphadelta14 and David Woods.  (Github issue #3951)
+
+* ``PY_SSIZE_T_CLEAN`` does not get defined any more if it is already defined.
+  Patch by Andrew Jones.  (Github issue #4104)
+
+
+0.29.22 (2021-02-20)
+====================
+
+Features added
+--------------
+
+* Some declarations were added to the provided pxd includes.
+  Patches by Zackery Spytz and John Kirkham.
+  (Github issues #3811, #3882, #3899, #3901)
+
+Bugs fixed
+----------
+
+* A crash when calling certain functions in Py3.9 and later was resolved.
+  (Github issue #3917)
+
+* ``const`` memory views of structs failed to compile.
+  (Github issue #2251)
+
+* ``const`` template declarations could not be nested.
+  Patch by Ashwin Srinath.  (Github issue #1355)
+
+* The declarations in the ``cpython.pycapsule`` module were missing their
+  ``const`` modifiers and generated incorrect C code.
+  Patch by Warren Weckesser.  (Github issue #3964)
+
+* Casts to memory views failed for fused dtypes.
+  Patch by David Woods.  (Github issue #3881)
+
 * ``repr()`` was assumed to return ``str`` instead of ``unicode`` with ``language_level=3``.
   (Github issue #3736)
+
+* Calling ``cpdef`` functions from cimported modules crashed the compiler.
+  Patch by David Woods.  (Github issue #4000)
 
 * Cython no longer validates the ABI size of the NumPy classes it compiled against.
   See the discussion in https://github.com/numpy/numpy/pull/432
 
 * A C compiler warning about enum value casting was resolved in GCC.
   (Github issue #2749)
+
+* Coverage reporting in the annotated HTML file failed in Py3.9.
+  Patch by Nick Pope.  (Github issue #3865)
+
+* The embedding code now reports Python errors as exit status.
+
+* Long type declarations could lead to (harmless) random changes in the
+  C file when used in auto-generated Python wrappers or pickled classes.
+
+Other changes
+-------------
+
+* Variables defined as ``cpdef`` now generate a warning since this
+  is currently useless and thus does not do what users would expect.
+  Patch by David Woods.  (Github issue #3959)
 
 
 0.29.21 (2020-07-09)
