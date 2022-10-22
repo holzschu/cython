@@ -2509,7 +2509,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         if Options.generate_cleanup_code:
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("RegisterModuleCleanup", "ModuleSetupCode.c"))
-            code.putln("if (__Pyx_RegisterCleanup()) %s;" % code.error_goto(self.pos))
+            code.putln("if (__Pyx_RegisterCleanup()) %s" % code.error_goto(self.pos))
 
         code.put_goto(code.return_label)
         code.put_label(code.error_label)
@@ -2646,18 +2646,12 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             # packages require __path__, so all we can do is try to figure
             # out the module path at runtime by rerunning the import lookup
             code.putln("if (!CYTHON_PEP489_MULTI_PHASE_INIT) {")
-            package_name, _ = self.full_module_name.rsplit('.', 1)
-            if '.' in package_name:
-                parent_name = '"%s"' % (package_name.rsplit('.', 1)[0],)
-            else:
-                parent_name = 'NULL'
             code.globalstate.use_utility_code(UtilityCode.load(
                 "SetPackagePathFromImportLib", "ImportExport.c"))
             code.putln(code.error_goto_if_neg(
-                '__Pyx_SetPackagePathFromImportLib(%s, %s)' % (
-                    parent_name,
+                '__Pyx_SetPackagePathFromImportLib(%s)' % (
                     code.globalstate.get_py_string_const(
-                        EncodedString(env.module_name)).cname),
+                        EncodedString(self.full_module_name)).cname),
                 self.pos))
             code.putln("}")
 
@@ -2862,7 +2856,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                 code.error_goto_if_null(Naming.cython_runtime_cname, self.pos)))
         code.put_incref(Naming.cython_runtime_cname, py_object_type, nanny=False)
         code.putln(
-            'if (PyObject_SetAttrString(%s, "__builtins__", %s) < 0) %s;' % (
+            'if (PyObject_SetAttrString(%s, "__builtins__", %s) < 0) %s' % (
                 env.module_cname,
                 Naming.builtins_cname,
                 code.error_goto(self.pos)))
