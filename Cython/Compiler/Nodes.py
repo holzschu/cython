@@ -5556,16 +5556,9 @@ class CClassDefNode(ClassDefNode):
             return
         # iOS: call type re-initialization every time:
         code.putln("#if TARGET_OS_IPHONE")
-        code.putln("init_%s();" % typeobj_cname)
+        code.putln("init_%s();" % type.typeobj_cname)
         code.putln("#endif")
         #
-        if entry.visibility != 'extern':
-            for slot in TypeSlots.slot_table:
-                slot.generate_dynamic_init_code(scope, code)
-            if heap_type_bases:
-                code.globalstate.use_utility_code(
-                    UtilityCode.load_cached('PyType_Ready', 'ExtensionTypes.c'))
-                readyfunc = "__Pyx_PyType_Ready"
         if entry.visibility == 'extern':
             # Generate code to initialise the typeptr of an external extension
             # type defined in this module to point to its type object.
