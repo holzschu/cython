@@ -1,3 +1,5 @@
+# cython: language_level=3str
+
 """
 A small templating language
 
@@ -33,11 +35,6 @@ from __future__ import absolute_import
 
 import re
 import sys
-import cgi
-try:
-    from urllib import quote as url_quote
-except ImportError:  # Py3
-    from urllib.parse import quote as url_quote
 import os
 import tokenize
 from io import StringIO
@@ -45,8 +42,7 @@ from io import StringIO
 from ._looper import looper
 from .compat3 import bytes, unicode_, basestring_, next, is_unicode, coerce_text
 
-__all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
-           'sub_html', 'html', 'bunch']
+__all__ = ['TemplateError', 'Template', 'sub', 'bunch']
 
 in_re = re.compile(r'\s+in\s+')
 var_re = re.compile(r'^[a-z_][a-z0-9_]*$', re.I)
@@ -144,9 +140,8 @@ class Template(object):
 
     def from_filename(cls, filename, namespace=None, encoding=None,
                       default_inherit=None, get_template=get_file_template):
-        f = open(filename, 'rb')
-        c = f.read()
-        f.close()
+        with open(filename, 'rb') as f:
+            c = f.read()
         if encoding:
             c = c.decode(encoding)
         return cls(content=c, name=filename, namespace=namespace,
@@ -335,7 +330,7 @@ class Template(object):
                 if not isinstance(value, basestring_):
                     value = coerce_text(value)
                 if (is_unicode(value)
-                    and self.default_encoding):
+                        and self.default_encoding):
                     value = value.encode(self.default_encoding)
         except Exception as e:
             e.args = (self._add_line_info(e.args[0], pos),)
@@ -410,91 +405,6 @@ class bunch(dict):
         return '<%s %s>' % (
             self.__class__.__name__,
             ' '.join(['%s=%r' % (k, v) for k, v in sorted(self.items())]))
-
-############################################################
-## HTML Templating
-############################################################
-
-
-class html(object):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return self.value
-
-    def __html__(self):
-        return self.value
-
-    def __repr__(self):
-        return '<%s %r>' % (
-            self.__class__.__name__, self.value)
-
-
-def html_quote(value, force=True):
-    if not force and hasattr(value, '__html__'):
-        return value.__html__()
-    if value is None:
-        return ''
-    if not isinstance(value, basestring_):
-        value = coerce_text(value)
-    if sys.version >= "3" and isinstance(value, bytes):
-        value = cgi.escape(value.decode('latin1'), 1)
-        value = value.encode('latin1')
-    else:
-        value = cgi.escape(value, 1)
-    if sys.version < "3":
-        if is_unicode(value):
-            value = value.encode('ascii', 'xmlcharrefreplace')
-    return value
-
-
-def url(v):
-    v = coerce_text(v)
-    if is_unicode(v):
-        v = v.encode('utf8')
-    return url_quote(v)
-
-
-def attr(**kw):
-    parts = []
-    for name, value in sorted(kw.items()):
-        if value is None:
-            continue
-        if name.endswith('_'):
-            name = name[:-1]
-        parts.append('%s="%s"' % (html_quote(name), html_quote(value)))
-    return html(' '.join(parts))
-
-
-class HTMLTemplate(Template):
-
-    default_namespace = Template.default_namespace.copy()
-    default_namespace.update(dict(
-        html=html,
-        attr=attr,
-        url=url,
-        html_quote=html_quote,
-        ))
-
-    def _repr(self, value, pos):
-        if hasattr(value, '__html__'):
-            value = value.__html__()
-            quote = False
-        else:
-            quote = True
-        plain = Template._repr(self, value, pos)
-        if quote:
-            return html_quote(plain)
-        else:
-            return plain
-
-
-def sub_html(content, **kw):
-    name = kw.get('__name')
-    tmpl = HTMLTemplate(content, name=name)
-    return tmpl.substitute(kw)
 
 
 class TemplateDef(object):
@@ -723,7 +633,7 @@ def trim_lex(tokens):
         else:
             next_chunk = tokens[i + 1]
         if (not isinstance(next_chunk, basestring_)
-            or not isinstance(prev, basestring_)):
+                or not isinstance(prev, basestring_)):
             continue
         prev_ok = not prev or trail_whitespace_re.search(prev)
         if i == 1 and not prev.strip():
@@ -735,7 +645,7 @@ def trim_lex(tokens):
                  or (i == len(tokens) - 2 and not next_chunk.strip()))):
             if prev:
                 if ((i == 1 and not prev.strip())
-                    or prev_ok == 'last'):
+                        or prev_ok == 'last'):
                     tokens[i - 1] = ''
                 else:
                     m = trail_whitespace_re.search(prev)
@@ -887,7 +797,7 @@ def parse_cond(tokens, name, context):
                 'Missing {{endif}}',
                 position=start, name=name)
         if (isinstance(tokens[0], tuple)
-            and tokens[0][0] == 'endif'):
+                and tokens[0][0] == 'endif'):
             return ('cond', start) + tuple(pieces), tokens[1:]
         next_chunk, tokens = parse_one_cond(tokens, name, context)
         pieces.append(next_chunk)
@@ -925,7 +835,7 @@ def parse_for(tokens, name, context):
     tokens = tokens[1:]
     context = ('for',) + context
     content = []
-    assert first.startswith('for ')
+    assert first.startswith('for '), first
     if first.endswith(':'):
         first = first[:-1]
     first = first[3:].strip()
@@ -949,7 +859,7 @@ def parse_for(tokens, name, context):
                 'No {{endfor}}',
                 position=pos, name=name)
         if (isinstance(tokens[0], tuple)
-            and tokens[0][0] == 'endfor'):
+                and tokens[0][0] == 'endfor'):
             return ('for', pos, vars, expr, content), tokens[1:]
         next_chunk, tokens = parse_expr(tokens, name, context)
         content.append(next_chunk)
@@ -1009,7 +919,7 @@ def parse_def(tokens, name, context):
                 'Missing {{enddef}}',
                 position=start, name=name)
         if (isinstance(tokens[0], tuple)
-            and tokens[0][0] == 'enddef'):
+                and tokens[0][0] == 'enddef'):
             return ('def', start, func_name, sig, content), tokens[1:]
         next_chunk, tokens = parse_expr(tokens, name, context)
         content.append(next_chunk)
@@ -1072,7 +982,7 @@ def parse_signature(sig_text, name, pos):
                     raise TemplateError('Invalid signature: (%s)' % sig_text,
                                         position=pos, name=name)
                 if (not nest_count and
-                    (tok_type == tokenize.ENDMARKER or (tok_type == tokenize.OP and tok_string == ','))):
+                        (tok_type == tokenize.ENDMARKER or (tok_type == tokenize.OP and tok_string == ','))):
                     default_expr = isolate_expression(sig_text, start_pos, end_pos)
                     defaults[var_name] = default_expr
                     sig_args.append(var_name)
@@ -1131,11 +1041,6 @@ def fill_command(args=None):
         metavar="FILENAME",
         help="File to write output to (default stdout)")
     parser.add_option(
-        '--html',
-        dest='use_html',
-        action='store_true',
-        help="Use HTML style filling (including automatic HTML quoting)")
-    parser.add_option(
         '--env',
         dest='use_env',
         action='store_true',
@@ -1162,19 +1067,13 @@ def fill_command(args=None):
         template_content = sys.stdin.read()
         template_name = '<stdin>'
     else:
-        f = open(template_name, 'rb')
-        template_content = f.read()
-        f.close()
-    if options.use_html:
-        TemplateClass = HTMLTemplate
-    else:
-        TemplateClass = Template
-    template = TemplateClass(template_content, name=template_name)
+        with open(template_name, 'rb') as f:
+            template_content = f.read()
+    template = Template(template_content, name=template_name)
     result = template.substitute(vars)
     if options.output:
-        f = open(options.output, 'wb')
-        f.write(result)
-        f.close()
+        with open(options.output, 'wb') as f:
+            f.write(result)
     else:
         sys.stdout.write(result)
 

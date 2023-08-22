@@ -29,8 +29,7 @@ class StringParseContext(Main.Context):
             include_directories = []
         if compiler_directives is None:
             compiler_directives = {}
-        # TODO: see if "language_level=3" also works for our internal code here.
-        Main.Context.__init__(self, include_directories, compiler_directives, cpp=cpp, language_level=2)
+        Main.Context.__init__(self, include_directories, compiler_directives, cpp=cpp, language_level='3str')
         self.module_name = name
 
     def find_module(self, module_name, relative_to=None, pos=None, need_pxd=1, absolute_fallback=True):
@@ -179,7 +178,7 @@ class TemplateTransform(VisitorTransform):
             if pos is None: pos = node.pos
             return ApplyPositionAndCopy(pos)(sub)
         else:
-            return self.visit_Node(node) # make copy as usual
+            return self.visit_Node(node)  # make copy as usual
 
     def visit_NameNode(self, node):
         temphandle = self.tempmap.get(node.name)
@@ -235,7 +234,7 @@ class TreeFragment(object):
                 fmt_pxds[key] = fmt(value)
             mod = t = parse_from_strings(name, fmt_code, fmt_pxds, level=level, initial_pos=initial_pos)
             if level is None:
-                t = t.body # Make sure a StatListNode is at the top
+                t = t.body  # Make sure a StatListNode is at the top
             if not isinstance(t, StatListNode):
                 t = StatListNode(pos=mod.pos, stats=[t])
             for transform in pipeline:

@@ -20,6 +20,9 @@ A memoryview can be used in any context (function parameters, module-level, cdef
 class attribute, etc) and can be obtained from nearly any object that
 exposes writable buffer through the `PEP 3118`_ buffer interface.
 
+.. _`PEP 3118`: https://www.python.org/dev/peps/pep-3118/
+
+
 .. _view_quickstart:
 
 Quickstart
@@ -39,6 +42,7 @@ This code should give the following output::
     Memoryview sum of Cython array is 1351
     Memoryview sum of C memoryview is 451
 
+.. _using_memoryviews:
 
 Using memoryviews
 =================
@@ -56,16 +60,11 @@ A complete 3D view::
 
     cdef int[:,:,:] view3D = exporting_object
 
-A 2D view that restricts the first dimension of a buffer to 100 rows
-starting at the second (index 1) and then skips every second (odd) row::
-
-    cdef int[1:102:2,:] partial_view = exporting_object
-
-This also works conveniently as function arguments:
+They also work conveniently as function arguments:
 
 .. code-block:: cython
 
-    def process_3d_buffer(int[1:102:2,:] view not None):
+    def process_3d_buffer(int[:,:,:] view not None):
         ...
 
 The ``not None`` declaration for the argument automatically rejects
@@ -78,6 +77,12 @@ arguments:
 Cython will reject incompatible buffers automatically, e.g. passing a
 three dimensional buffer into a function that requires a two
 dimensional buffer will raise a ``ValueError``.
+
+
+To use a memory view on a numpy array with a custom dtype, you'll need to
+declare an equivalent packed struct that mimics the dtype:
+
+.. literalinclude:: ../../examples/userguide/memoryviews/custom_dtype.pyx
 
 
 Indexing
@@ -233,6 +238,8 @@ NumPy arrays support this interface, as do :ref:`view_cython_arrays`.  The
 "nearly all" is because the Python buffer interface allows the *elements* in the
 data array to themselves be pointers; Cython memoryviews do not yet support
 this.
+
+.. _`new style buffers`: https://docs.python.org/3/c-api/buffer.html
 
 .. _view_memory_layout:
 
@@ -473,7 +480,7 @@ Memoryview Objects and Cython Arrays
 ====================================
 
 These typed memoryviews can be converted to Python memoryview objects
-(`cython.view.memoryview`).  These Python objects are indexable, slicable and
+(`cython.view.memoryview`).  These Python objects are indexable, sliceable and
 transposable in the same way that the original memoryviews are. They can also be
 converted back to Cython-space memoryviews at any time.
 
@@ -546,7 +553,7 @@ may be assigned directly to a memoryview slice::
 
     cdef int[:, ::1] myslice = my_2d_c_array
 
-The arrays are indexable and slicable from Python space just like memoryview objects, and have the same
+The arrays are indexable and sliceable from Python space just like memoryview objects, and have the same
 attributes as memoryview objects.
 
 CPython array module
@@ -588,12 +595,12 @@ Coercion to NumPy
 Memoryview (and array) objects can be coerced to a NumPy ndarray, without having
 to copy the data. You can e.g. do::
 
-    cimport numpy as np
+    cimport numpy as cnp
     import numpy as np
 
-    numpy_array = np.asarray(<np.int32_t[:10, :10]> my_pointer)
+    numpy_array = np.asarray(<cnp.int32_t[:10, :10]> my_pointer)
 
-Of course, you are not restricted to using NumPy's type (such as ``np.int32_t``
+Of course, you are not restricted to using NumPy's type (such as ``cnp.int32_t``
 here), you can use any usable type.
 
 None Slices
@@ -660,6 +667,16 @@ object handling. For the details of how to compile and
 call functions in C files, see :ref:`using_c_libraries`.
 
 
-.. _GIL: http://docs.python.org/dev/glossary.html#term-global-interpreter-lock
+Performance: Disabling initialization checks
+============================================
+
+Every time the memoryview is accessed, Cython adds a check to make sure that it has been initialized.
+
+If you are looking for performance, you can disable them by setting the
+``initializedcheck`` directive to ``False``.
+See: :ref:`compiler-directives` for more information about this directive.
+
+
+.. _GIL: https://docs.python.org/dev/glossary.html#term-global-interpreter-lock
 .. _NumPy: https://docs.scipy.org/doc/numpy/reference/arrays.ndarray.html#memory-layout
 .. _example: https://docs.scipy.org/doc/numpy/reference/arrays.indexing.html
