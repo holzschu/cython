@@ -66,7 +66,6 @@ pre_import = None
 generate_cleanup_code = 3
 # generate_cleanup_code = False
 
-
 #: Should tp_clear() set object fields to None instead of clearing them to NULL?
 clear_to_none = True
 
