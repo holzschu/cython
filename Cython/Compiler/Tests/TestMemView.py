@@ -48,16 +48,16 @@ class TestMemviewParsing(CythonTest):
     def test_basic(self):
         t = self.parse(u"cdef int[:] x")
         memv_node = t.stats[0].base_type
-        self.assert_(isinstance(memv_node, MemoryViewSliceTypeNode))
+        self.assertTrue(isinstance(memv_node, MemoryViewSliceTypeNode))
 
     # we also test other similar declarations (buffers, anonymous C arrays)
     # since the parsing has to distinguish between them.
 
-    def disable_test_no_buf_arg(self): # TODO
+    def disable_test_no_buf_arg(self):  # TODO
         self.not_parseable(u"Expected ']'",
                 u"cdef extern foo(object[int, ndim=2])")
 
-    def disable_test_parse_sizeof(self): # TODO
+    def disable_test_parse_sizeof(self):  # TODO
         self.parse(u"sizeof(int[NN])")
         self.parse(u"sizeof(int[])")
         self.parse(u"sizeof(int[][NN])")

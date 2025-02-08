@@ -1,9 +1,11 @@
-import os
+import os.path
+import unittest
 
 from Cython.TestUtils import TransformTest
 from Cython.Compiler.ParseTreeTransforms import *
+from Cython.Compiler.ParseTreeTransforms import _calculate_pickle_checksums
 from Cython.Compiler.Nodes import *
-from Cython.Compiler import Main, Symtab
+from Cython.Compiler import Main, Symtab, Options
 
 
 class TestNormalizeTree(TransformTest):
@@ -87,9 +89,9 @@ class TestNormalizeTree(TransformTest):
 
     def test_pass_eliminated(self):
         t = self.run_pipeline([NormalizeTree(None)], u"pass")
-        self.assert_(len(t.stats) == 0)
+        self.assertTrue(len(t.stats) == 0)
 
-class TestWithTransform(object): # (TransformTest): # Disabled!
+class TestWithTransform(object):  # (TransformTest): # Disabled!
 
     def test_simplified(self):
         t = self.run_pipeline([WithTransform(None)], u"""
@@ -177,8 +179,8 @@ class TestInterpretCompilerDirectives(TransformTest):
     def setUp(self):
         super(TestInterpretCompilerDirectives, self).setUp()
 
-        compilation_options = Main.CompilationOptions(Main.default_options)
-        ctx = compilation_options.create_context()
+        compilation_options = Options.CompilationOptions(Options.default_options)
+        ctx = Main.Context.from_options(compilation_options)
 
         transform = InterpretCompilerDirectives(ctx, ctx.compiler_directives)
         transform.module_scope = Symtab.ModuleScope('__main__', None, ctx)
@@ -275,6 +277,11 @@ class TestDebugTransform(DebuggerTestCase):
                 f.close()
             raise
 
+
+class TestAnalyseDeclarationsTransform(unittest.TestCase):
+    def test_calculate_pickle_checksums(self):
+        checksums = _calculate_pickle_checksums(['member1', 'member2', 'member3'])
+        assert 2 <= len(checksums) <= 3, checksums  # expecting ['0xc0af380' (MD5), '0x0c75bd4', '0xa7a7b94']
 
 
 if __name__ == "__main__":
