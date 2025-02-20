@@ -5616,7 +5616,7 @@ class CClassDefNode(ClassDefNode):
             return
         # iOS: call type re-initialization every time:
         code.putln("#if TARGET_OS_IPHONE")
-        code.putln("init_%s();" % typeobj_cname)
+        code.putln("init_%s();" % type.typeobj_cname)
         code.putln("#endif")
         #
         if entry.visibility == 'extern':

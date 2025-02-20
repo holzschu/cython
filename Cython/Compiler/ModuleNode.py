@@ -2676,7 +2676,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                 type.typeobj_cname, objstruct))
         code.putln(
             "%s.tp_itemsize = 0; /*tp_itemsize*/" % type.typeobj_cname)
-        for slot in TypeSlots.slot_table:
+        for slot in TypeSlots.get_slot_table(code.globalstate.directives):
             slot.generate_initialization(scope, code)
         code.putln(
             "}")
